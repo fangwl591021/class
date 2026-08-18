@@ -43,10 +43,13 @@
 - `/admin/event/:eventId`：活動儀表板 / 名單 / 收款
 - `/admin/event/:eventId/config`：梯次專屬項目 / 自訂欄位 / 報到
 - `/admin/event/:eventId/items`：項目編輯 / 停用 / 排序 / 價格 / 名額
+- `/admin/event/:eventId/policy`：取消 / 已付款取消 / 後付付款期限設定
+- `/admin/refunds`：退費申請管理
+- `/admin/reminders`：未付款提醒作業台
 - `/admin/api-clients`：API Client 建立 / 停用
 - `/admin/checkin`：手機相機 QR 掃碼報到
 
-## V0.9 已完成
+## V0.10 已完成
 
 ### 報名核心
 
@@ -75,32 +78,43 @@
 - API Client scope 已開始強制：`events:read` / `identity:write`
 - TDEA 串接文件：`docs/TDEA_IDENTITY_ADAPTER.md`
 
-### V0.9 新增：取消 / 退費 / 催款
+### V0.10 新增：取消 / 退費 / 付款期限後台
 
-活動可以設定：
+活動管理員可直接在 `/admin/event/:eventId/policy` 設定：
 
-- `cancel_policy`：`allowed` / `disabled`
-- `cancel_deadline_hours`：活動開始前幾小時停止自行取消
-- `paid_cancel_action`：
-  - `manual_refund`：已付款取消後建立待人工處理退費單
-  - `no_refund`：可取消但不建立退費單
-  - `block`：已付款後不可自行取消
-- `payment_due_days`：`register_then_pay` 報名後幾天內付款
+- 是否允許使用者自行取消
+- 活動開始前幾小時停止自行取消
+- 已付款取消後：
+  - 建立人工退費申請
+  - 允許取消但不退費
+  - 禁止自行取消
+- `register_then_pay` 報名後幾天內必須付款
 
-新增資料：
+退費管理 `/admin/refunds`：
 
-- `registrations.payment_due_at`
-- `registrations.reminder_sent_at`
-- `refund_requests`
+- 顯示待處理退費申請
+- 顯示活動、報名編號、聯絡人、退費金額、原因
+- 可標記「已退費」
+- 可「駁回」
+- 保存處理時間與處理備註
+- 標記已退費後同步將 Registration / Order 的付款狀態更新為 `refunded`
+
+未付款提醒 `/admin/reminders`：
+
+- 顯示 24 小時內付款到期的後付報名
+- 顯示手機、Email、付款期限、應付金額
+- 可人工標記「已提醒」
+- 後續 LINE / Email / SMS 通知器共用同一批 reminder 資料
 
 新增 API：
 
+- `GET /api/v1/admin/refunds`
+- `POST /api/v1/admin/refunds/:refundId/approve`
+- `POST /api/v1/admin/refunds/:refundId/reject`
 - `GET /api/v1/admin/events/:eventId/policy`
 - `POST /api/v1/admin/events/:eventId/policy`
 - `GET /api/v1/admin/reminders/due`
 - `POST /api/v1/admin/registrations/:registrationId/reminder-sent`
-
-`GET /api/v1/admin/reminders/due` 會列出 24 小時內到期、尚未付款、尚未標記提醒的報名，方便之後串 LINE / Email / SMS 通知器。
 
 ### V0.8 已有
 
@@ -112,7 +126,7 @@
 
 ## Integration API
 
-外部專案使用 API Key 串接。V0.9 已開始強制 scope：
+外部專案使用 API Key 串接。目前 scope：
 
 - `GET /api/v1/integration/events` → `events:read`
 - Identity Session / Handoff → `identity:write`
@@ -173,6 +187,7 @@ npx wrangler secret put LINE_CHANNEL_SECRET
 - `0003_integrations_security.sql`
 - `0004_identity_handoff.sql`
 - `0005_cancellation_reminders.sql`
+- `0006_refund_processing.sql`
 
 建立正式資料庫後，把 `wrangler.toml` 的 `database_id` 改成實際 D1 ID，再執行：
 
@@ -185,7 +200,7 @@ npm run deploy
 ## Worker entrypoint
 
 ```text
-src/app-v09.ts
+src/app-v10.ts
 ```
 
 ## 目前分支
@@ -195,9 +210,8 @@ src/app-v09.ts
 ## 下一階段
 
 1. 建立正式 `class_db`、套 migration、部署 staging 實機測試
-2. 把取消 / 退費 / 付款期限設定做進活動後台 UI
-3. 建立 refund 管理頁與完成退費流程
-4. 將 due reminders 串 LINE / Email / SMS 通知 adapter
-5. 付款 gateway adapter（LINE Pay / 藍新 / 綠界）
-6. API scope 擴充到 registration / payment 等更細權限
-7. 若需要 Excel `.xlsx` 再加正式 Excel 匯出
+2. 將 policy / refunds / reminders 快捷入口直接掛到活動儀表板
+3. 串 LINE / Email / SMS 通知 adapter
+4. 付款 gateway adapter（LINE Pay / 藍新 / 綠界）
+5. API scope 擴充到 registration / payment 等細權限
+6. 完整 smoke test：免費、後付、先付、取消、退費、梯次、多人、掃碼報到
