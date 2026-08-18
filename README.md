@@ -27,9 +27,7 @@
 - `guest_only`：不登入，一般自行填寫。
 - `hybrid`：登入快速報名或自行填寫都可以。
 
-## V0.10.1
-
-目前已完成：
+## V0.10.1 已完成
 
 - 項目 × 單價 × 人數
 - 活動 / 梯次 / 項目三層名額
@@ -111,7 +109,7 @@
 src/app-v101.ts
 ```
 
-## 正式部署前唯一必要條件
+## 正式部署前必要條件
 
 `wrangler.toml` 目前仍是：
 
@@ -119,7 +117,7 @@ src/app-v101.ts
 database_id = "REPLACE_WITH_CLASS_DB_ID"
 ```
 
-因此正式部署前必須先建立 `class_db`，填入實際 D1 database ID，再套 migration。
+正式部署前必須先建立 `class_db`，填入實際 D1 database ID，再套 migration。
 
 ```bash
 npm install
