@@ -1,5 +1,5 @@
 name = "class"
-main = "src/app-v101.ts"
+main = "src/app-v11.ts"
 compatibility_date = "2026-08-18"
 
 [vars]
@@ -8,6 +8,7 @@ APP_NAME = "Class Registration Engine"
 # Production secrets (set with wrangler secret put):
 # ADMIN_TOKEN
 # LINE_CHANNEL_SECRET
+# NOTIFY_WEBHOOK_URL
 # Optional LINE Login vars can be set as vars/secrets before enabling LINE Login:
 # LINE_CHANNEL_ID
 # LINE_REDIRECT_URI
