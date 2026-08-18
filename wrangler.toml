@@ -8,5 +8,5 @@ APP_NAME = "Class Registration Engine"
 [[d1_databases]]
 binding = "CLASS_DB"
 database_name = "class_db"
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
+database_id = "REPLACE_WITH_CLASS_DB_ID"
 migrations_dir = "migrations"
