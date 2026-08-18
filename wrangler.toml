@@ -1,0 +1,12 @@
+name = "class"
+main = "src/index.ts"
+compatibility_date = "2026-08-18"
+
+[vars]
+APP_NAME = "Class Registration Engine"
+
+[[d1_databases]]
+binding = "CLASS_DB"
+database_name = "class_db"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+migrations_dir = "migrations"
