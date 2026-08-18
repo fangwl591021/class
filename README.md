@@ -31,14 +31,14 @@
 
 - `/`：系統首頁
 - `/events`：公開活動列表
-- `/event/:eventId`：手機友善報名頁
+- `/event/:eventId`：V0.5 動態手機報名頁
 - `/registration/:accessToken`：報名完成 / 查詢 / 取消 / 匯款回報
 - `/admin`：活動管理後台
 - `/admin/event/:eventId`：活動儀表板、梯次、名單、收款確認
-- `/admin/event/:eventId/config`：V0.4 進階設定（梯次專屬項目、自訂欄位、報到）
+- `/admin/event/:eventId/config`：進階設定（梯次專屬項目、自訂欄位、報到）
 - `/my`：外部會員 / LINE Identity 的「我的報名」測試入口
 
-## V0.4 已完成
+## V0.5 已完成
 
 - 活動、梯次、項目、報名、訂單、付款、報到資料結構
 - 項目 × 單價 × 人數，價格由後端重新計算
@@ -52,12 +52,16 @@
 - 管理員確認收款
 - 確認收款後，`pay_then_confirm` 自動由 `pending_payment` 轉 `confirmed`
 - 活動管理儀表板：報名人數、已收金額、待付款筆數、名單
-- 後台新增梯次
 - 每個梯次可建立自己的報名項目 / 價位 / 項目名額
 - 自訂報名欄位 Builder：聯絡人欄位或每位參加者欄位
+- **自訂欄位已真正渲染至公開報名頁，並寫入 `custom_data_json`**
+- `select / radio / checkbox / textarea / text / tel / email / date / number` 前台欄位
+- 必填自訂欄位由後端再次驗證，不能只靠瀏覽器前端
+- 多人報名時依「項目 × 人數」自動展開每位參加者資料
+- 不同梯次切換時，只顯示「共用項目 + 該梯次專屬項目」
 - 外部會員「我的報名」查詢 API 與測試頁
 - 以 `registration_no` 進行現場快速報到
-- Worker 入口已切至 `src/app.ts`，以 wrapper 方式保留 V0.3 核心並增加 V0.4 路由
+- Worker 入口已切至 `src/app-v05.ts`，V0.5 包裝 V0.4 / V0.3，避免破壞既有核心
 
 ## API V1
 
@@ -85,7 +89,7 @@
 - `POST /api/v1/admin/registrations/:registrationId/confirm-payment`
 - `POST /api/v1/admin/checkin/:registrationNo`
 
-> 注意：管理 API 目前仍為開發基線，正式對外前必須加入管理員驗證與 tenant/API key 隔離。
+> 注意：管理 API 與目前 `/my` provider/memberId 查詢仍屬開發模式。正式對外前必須加入管理員驗證、Identity token、API Key 與 tenant 隔離，不能讓外部直接靠 Member ID 查詢。
 
 ## 建立報名範例
 
@@ -105,10 +109,22 @@
     { "itemId": "item_member", "quantity": 2 },
     { "itemId": "item_guest", "quantity": 1 }
   ],
+  "customData": {
+    "company": "範例公司"
+  },
   "attendees": [
-    { "itemId": "item_member", "attendeeIndex": 1, "name": "王小明" },
-    { "itemId": "item_member", "attendeeIndex": 2, "name": "王小華" },
-    { "itemId": "item_guest", "attendeeIndex": 1, "name": "李大華" }
+    {
+      "itemId": "item_member",
+      "attendeeIndex": 1,
+      "name": "王小明",
+      "customData": { "meal": "葷食" }
+    },
+    {
+      "itemId": "item_member",
+      "attendeeIndex": 2,
+      "name": "王小華",
+      "customData": { "meal": "素食" }
+    }
   ]
 }
 ```
@@ -143,11 +159,11 @@ npm run db:migrate:remote
 
 ## 下一階段
 
-1. 把自訂欄位真正渲染到前台報名表，並寫回 `custom_data_json`
-2. LINE Login / 外部會員 Identity Adapter
-3. 管理員 Login / 權限
-4. API Key / tenant 隔離，提供其他專案串接
-5. QR Code 視覺票券與掃碼報到頁
-6. 付款 gateway adapter（LINE Pay / 藍新 / 綠界）
-7. 後台項目編輯 / 停用 / 排序
-8. 匯出 Excel / CSV 報名名單
+1. LINE Login / TDEA / 外部會員 Identity Adapter
+2. 管理員 Login / 權限
+3. API Key / tenant 隔離，提供其他專案安全串接
+4. QR Code 視覺票券與手機掃碼報到頁
+5. 付款 gateway adapter（LINE Pay / 藍新 / 綠界）
+6. 後台項目編輯 / 停用 / 排序
+7. 匯出 Excel / CSV 報名名單
+8. 取消 / 退費規則與付款期限提醒
