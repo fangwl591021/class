@@ -1,6 +1,10 @@
 export interface Env {
   CLASS_DB: D1Database;
   APP_NAME: string;
+  ADMIN_TOKEN?: string;
+  LINE_CHANNEL_ID?: string;
+  LINE_CHANNEL_SECRET?: string;
+  LINE_REDIRECT_URI?: string;
 }
 
 export type IdentityMode = 'login_required' | 'guest_only' | 'hybrid';
