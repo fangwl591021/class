@@ -1,5 +1,5 @@
 name = "class"
-main = "src/index.ts"
+main = "src/app.ts"
 compatibility_date = "2026-08-18"
 
 [vars]
