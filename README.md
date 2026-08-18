@@ -27,7 +27,7 @@
 - `guest_only`：不登入，一般自行填寫。
 - `hybrid`：登入快速報名或自行填寫都可以。
 
-## V0.10.1 已完成
+## V0.11 已完成
 
 - 項目 × 單價 × 人數
 - 活動 / 梯次 / 項目三層名額
@@ -37,14 +37,18 @@
 - 匯款回報與後台確認收款
 - 取消政策、已付款取消策略、付款期限
 - 退費申請管理與已退費 / 駁回流程
-- 未付款提醒作業台
 - 電子票券 / QR Code / 掃碼報到
 - CSV 中文名單匯出
 - API Client / tenant / scope / Key 輪替
+- 付款提醒作業台 `/admin/reminders`
+- 營運工具入口 `/admin/ops`
+- 可選 `NOTIFY_WEBHOOK_URL`，把即將到期的付款提醒交給 LINE / Email / SMS 通知服務
+- 通知成功後才寫入 `reminder_sent_at`，避免通知失敗卻被誤標記完成
 
 ## 主要後台頁面
 
 - `/admin`
+- `/admin/ops`
 - `/admin/event/:eventId`
 - `/admin/event/:eventId/config`
 - `/admin/event/:eventId/items`
@@ -69,13 +73,29 @@
 - 可標記已退費或駁回
 - 保存處理時間與備註
 - 已退費時同步更新 Registration / Order 為 `refunded`
-- 處理備註直接在頁面內輸入，不使用瀏覽器原生 prompt
 
-未付款提醒 `/admin/reminders`：
+付款提醒 `/admin/reminders`：
 
-- 顯示 24 小時內付款到期、尚未付款、尚未提醒的報名
+- 顯示 24 小時內付款到期且尚未付款的報名
 - 顯示手機 / Email / 金額 / 付款期限
-- 可標記已提醒
+- 可人工標記已提醒
+- 若設定 `NOTIFY_WEBHOOK_URL`，可直接由後台發送提醒 payload
+
+Webhook payload 範例：
+
+```json
+{
+  "type": "payment_due",
+  "registrationNo": "REG-260818-ABC123",
+  "name": "王小明",
+  "phone": "0912345678",
+  "email": "demo@example.com",
+  "eventTitle": "活動名稱",
+  "amount": 1800,
+  "paymentDueAt": "2026-08-20T12:00:00.000Z",
+  "registrationUrl": "/registration/access-token"
+}
+```
 
 ## Integration API
 
@@ -90,6 +110,7 @@
 - `GET /api/v1/admin/events/:eventId/policy`
 - `POST /api/v1/admin/events/:eventId/policy`
 - `GET /api/v1/admin/reminders/due`
+- `POST /api/v1/admin/reminders/:registrationId/dispatch`
 - `POST /api/v1/admin/registrations/:registrationId/reminder-sent`
 
 ## D1 migrations
@@ -101,12 +122,10 @@
 - `0005_cancellation_reminders.sql`
 - `0006_refund_processing.sql`（compatibility no-op）
 
-`refund_requests` 的 `requested_at / processed_at / processed_by / note` 已在 0005 建立，因此 0006 不再重複 ALTER，避免 migration 衝突。
-
 ## Worker entrypoint
 
 ```text
-src/app-v101.ts
+src/app-v11.ts
 ```
 
 ## 正式部署前必要條件
@@ -117,12 +136,28 @@ src/app-v101.ts
 database_id = "REPLACE_WITH_CLASS_DB_ID"
 ```
 
-正式部署前必須先建立 `class_db`，填入實際 D1 database ID，再套 migration。
+正式部署步驟與 smoke test 已整理在：
+
+```text
+docs/STAGING_DEPLOY.md
+```
+
+正式環境至少設定：
 
 ```bash
-npm install
-npm run db:migrate:remote
-npm run deploy
+npx wrangler secret put ADMIN_TOKEN
+```
+
+若要啟用提醒 Webhook：
+
+```bash
+npx wrangler secret put NOTIFY_WEBHOOK_URL
+```
+
+若啟用 LINE Login：
+
+```bash
+npx wrangler secret put LINE_CHANNEL_SECRET
 ```
 
 ## 目前分支
@@ -132,8 +167,7 @@ npm run deploy
 ## 下一階段
 
 1. 建立正式 `class_db`、套 migration、部署 staging 實機測試
-2. 將 policy / refunds / reminders 快捷入口掛到活動儀表板
-3. 串 LINE / Email / SMS 通知 adapter
-4. 付款 gateway adapter（LINE Pay / 藍新 / 綠界）
-5. API scope 擴充到 registration / payment 等細權限
-6. 完整 smoke test：免費、後付、先付、取消、退費、梯次、多人、掃碼報到
+2. 把營運工具快捷入口直接掛進活動儀表板
+3. 付款 gateway adapter（LINE Pay / 藍新 / 綠界）
+4. API scope 擴充到 registration / payment 等細權限
+5. 完整 smoke test：免費、後付、先付、取消、退費、梯次、多人、掃碼報到
