@@ -51,69 +51,49 @@
 
 ## V0.10.1 已完成
 
-### 報名核心
-
-- 活動 / 梯次 / 項目 / 報名 / 訂單 / 付款 / 報到
 - 項目 × 單價 × 人數，價格一律由後端重新計算
 - 活動總名額 / 梯次名額 / 項目名額
 - 每梯次可有自己的項目 / 價位 / 名額
 - 每位參加者資料與自訂欄位 Builder
-- 前台動態渲染自訂欄位，後端再次驗證必填
-- 匯款回報 / 管理員確認收款
-- `pay_then_confirm` 暫留名額、付款成功轉 `confirmed`、逾時釋放名額
+- 免費 / 後付 / 付款完成才成立
+- 取消政策、已付款取消策略、付款期限
+- 退費申請管理與已退費 / 駁回流程
+- 退費完成同步更新 Registration / Order 為 `refunded`
+- 未付款提醒作業台
+- LINE Login / 外部會員 Identity Adapter / Browser Handoff
+- API Client + tenant + scope
+- 電子票券 / QR Code / 掃碼報到
+- CSV 中文名單匯出
+- API Key 輪替
 
-### Login / Integration / Security
+### 取消 / 退費 / 付款期限
 
-- Login / Guest / Hybrid
-- 管理員 `ADMIN_TOKEN` 保護
-- LINE Login OAuth 2.1 基線
-- API Client 綁 tenant，API Key 只保存 SHA-256 hash
-- Identity Session / Identity Token
-- `X-Class-Identity-Token` 報名身份注入
-- Identity tenant 與 Event tenant 強制一致
-- Integration audit log
-- 外部會員一次性 Browser Handoff
-- Handoff code 短效、一次性，不把 identity token 放進 URL
-- `/my` 使用登入身份直接查詢會員報名紀錄
-- API Client scope 已開始強制：`events:read` / `identity:write`
-- TDEA 串接文件：`docs/TDEA_IDENTITY_ADAPTER.md`
-
-### V0.10 新增：取消 / 退費 / 付款期限後台
-
-活動管理員可直接在 `/admin/event/:eventId/policy` 設定：
+活動管理員可在 `/admin/event/:eventId/policy` 設定：
 
 - 是否允許使用者自行取消
 - 活動開始前幾小時停止自行取消
-- 已付款取消後：
-  - 建立人工退費申請
-  - 允許取消但不退費
-  - 禁止自行取消
+- 已付款取消後：人工退費 / 不退費 / 禁止自行取消
 - `register_then_pay` 報名後幾天內必須付款
 
 退費管理 `/admin/refunds`：
 
-- 顯示待處理退費申請
 - 顯示活動、報名編號、聯絡人、退費金額、原因
-- 可標記「已退費」
-- 可「駁回」
-- 保存處理時間與處理備註
-- 標記已退費後同步將 Registration / Order 的付款狀態更新為 `refunded`
+- 可標記已退費或駁回
+- 保存處理時間與備註
+- 不使用瀏覽器原生 prompt，處理備註直接在頁面內輸入
 
 未付款提醒 `/admin/reminders`：
 
-- 顯示 24 小時內付款到期的後付報名
-- 顯示手機、Email、付款期限、應付金額
-- 可人工標記「已提醒」
-- 後續 LINE / Email / SMS 通知器共用同一批 reminder 資料
+- 顯示 24 小時內付款到期、尚未付款、尚未提醒的報名
+- 顯示手機 / Email / 金額 / 付款期限
+- 可標記已提醒
 
-### V0.10.1 修正
+## Integration API
 
-- 退費處理改用 `refund_requests` 在 0005 已建立的 `requested_at / processed_at / note` 欄位，避免重複 migration 欄位衝突。
-- `0006_refund_processing.sql` 改為 no-op compatibility migration，維持既有 migration 順序。
-- 退費管理頁不使用瀏覽器原生 prompt，改為頁面內直接填寫處理備註。
-- Worker entrypoint 改為 `src/app-v101.ts`。
+- `GET /api/v1/integration/events` → `events:read`
+- Identity Session / Handoff → `identity:write`
 
-新增 API：
+## 管理 API
 
 - `GET /api/v1/admin/refunds`
 - `POST /api/v1/admin/refunds/:refundId/approve`
@@ -122,53 +102,6 @@
 - `POST /api/v1/admin/events/:eventId/policy`
 - `GET /api/v1/admin/reminders/due`
 - `POST /api/v1/admin/registrations/:registrationId/reminder-sent`
-
-### V0.8 已有
-
-- QR 掃碼專用報到頁 `/admin/checkin`
-- 電子票券 / QR Code
-- 後台項目編輯 / 停用 / 排序 / 價格 / 名額
-- CSV 中文名單匯出
-- API Key 輪替
-
-## Integration API
-
-外部專案使用 API Key 串接。目前 scope：
-
-- `GET /api/v1/integration/events` → `events:read`
-- Identity Session / Handoff → `identity:write`
-
-### 建立已驗證會員 Identity Session
-
-```http
-POST /api/v1/integration/identity/session
-X-API-Key: cls_xxxxx
-Content-Type: application/json
-
-{
-  "provider": "tdea",
-  "externalMemberId": "12345",
-  "displayName": "王小明",
-  "phone": "0912345678",
-  "email": "demo@example.com"
-}
-```
-
-### 建立一次性 Browser Handoff
-
-```http
-POST /api/v1/integration/identity/handoff
-X-API-Key: cls_xxxxx
-Content-Type: application/json
-
-{
-  "identityToken": "ids_xxxxx",
-  "returnPath": "/event/evt_xxxxx",
-  "expiresSeconds": 120
-}
-```
-
-完整 TDEA 流程請看 `docs/TDEA_IDENTITY_ADAPTER.md`。
 
 ## LINE Login 設定
 
@@ -196,6 +129,8 @@ npx wrangler secret put LINE_CHANNEL_SECRET
 - `0005_cancellation_reminders.sql`
 - `0006_refund_processing.sql`（compatibility no-op）
 
+`refund_requests` 的 `requested_at / processed_at / processed_by / note` 已在 0005 建立，因此 0006 不再重複 ALTER，避免正式 migration 衝突。
+
 建立正式資料庫後，把 `wrangler.toml` 的 `database_id` 改成實際 D1 ID，再執行：
 
 ```bash
@@ -217,7 +152,7 @@ src/app-v101.ts
 ## 下一階段
 
 1. 建立正式 `class_db`、套 migration、部署 staging 實機測試
-2. 將 policy / refunds / reminders 快捷入口直接掛到活動儀表板
+2. 將 policy / refunds / reminders 快捷入口掛到活動儀表板
 3. 串 LINE / Email / SMS 通知 adapter
 4. 付款 gateway adapter（LINE Pay / 藍新 / 綠界）
 5. API scope 擴充到 registration / payment 等細權限
