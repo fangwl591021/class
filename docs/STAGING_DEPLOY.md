@@ -30,22 +30,13 @@ database_name = "class_db"
 database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 ```
 
-把真正的 `database_id` 寫回 `wrangler.toml`：
-
-```toml
-[[d1_databases]]
-binding = "CLASS_DB"
-database_name = "class_db"
-database_id = "實際-D1-ID"
-migrations_dir = "migrations"
-```
+把真正的 `database_id` 寫回 `wrangler.toml`。
 
 ## 4. 套用 migration
 
-先確認 migration：
-
 ```powershell
 Get-ChildItem .\migrations
+npx wrangler d1 migrations apply CLASS_DB --remote
 ```
 
 目前順序：
@@ -59,13 +50,7 @@ Get-ChildItem .\migrations
 0006_refund_processing.sql
 ```
 
-執行：
-
-```powershell
-npx wrangler d1 migrations apply CLASS_DB --remote
-```
-
-然後確認關鍵資料表：
+確認關鍵資料表：
 
 ```powershell
 npx wrangler d1 execute CLASS_DB --remote --command "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;"
@@ -92,13 +77,15 @@ integration_audit_logs
 refund_requests
 ```
 
-## 5. 設定管理密碼
+## 5. 設定 secrets
+
+管理後台：
 
 ```powershell
 npx wrangler secret put ADMIN_TOKEN
 ```
 
-正式使用 LINE Login 時再設定：
+正式使用 LINE Login 時：
 
 ```powershell
 npx wrangler secret put LINE_CHANNEL_SECRET
@@ -155,7 +142,7 @@ npx wrangler deploy
 
 ### C. 建立活動
 
-後台建立一場測試活動，至少測：
+至少測：
 
 1. 免費活動
 2. `register_then_pay` 後付活動
@@ -218,7 +205,7 @@ pending_payment → 匯款回報 → pending → 後台確認 → confirmed + pa
 /admin/reminders
 ```
 
-確認 24 小時內到期的後付訂單會列出。
+確認 24 小時內到期的後付訂單會列出。若已設定 `NOTIFY_WEBHOOK_URL`，按「發送提醒」後只有 Webhook 回傳成功才會寫入 `reminder_sent_at`；通知失敗時不標記完成。
 
 ### H. 電子票券 / 報到
 
@@ -242,6 +229,7 @@ pending_payment → 匯款回報 → pending → 後台確認 → confirmed + pa
 - Guest 與 Login 模式都正常
 - 取消規則正常
 - 退費申請正常
+- 付款提醒正常
 - CSV 匯出正常
 - QR 報到正常
 - Android / iPhone 各跑一次報名流程
