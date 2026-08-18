@@ -32,17 +32,25 @@
 - `/`：系統首頁
 - `/events`：公開活動列表
 - `/event/:eventId`：手機友善報名頁
-- `/registration/:accessToken`：報名完成 / 查詢 / 取消
+- `/registration/:accessToken`：報名完成 / 查詢 / 取消 / 匯款回報
 - `/admin`：活動管理後台
+- `/admin/event/:eventId`：活動儀表板、梯次、名單、收款確認
 
-管理後台目前可以直接建立並發布活動，設定：
+## V0.3 已完成
 
-- 活動名稱、日期、地點、總名額
-- Login / Guest / Hybrid 報名模式
+- 活動、梯次、項目、報名、訂單、付款、報到資料結構
+- 項目 × 單價 × 人數，價格由後端重新計算
+- 活動總名額 / 梯次名額 / 項目名額
+- Login / Guest / Hybrid
 - 免費 / 先報名後付款 / 付款完成才成功
-- 付款暫留分鐘數
-- 多個報名項目
-- 每個項目的單價、每筆最多數量、項目總名額
+- `pay_then_confirm` 暫留名額與逾時自動失效
+- 參加者資料模式：只填聯絡人 / 每位姓名 / 每位完整資料
+- 匯款銀行、銀行代碼、帳號、戶名
+- Guest 回報匯款末五碼
+- 管理員確認收款
+- 確認收款後，`pay_then_confirm` 自動由 `pending_payment` 轉 `confirmed`
+- 活動管理儀表板：報名人數、已收金額、待付款筆數、名單
+- 後台新增梯次
 
 ## API V1
 
@@ -54,15 +62,19 @@
 - `POST /api/v1/events/:eventId/registrations`
 - `GET /api/v1/registrations/token/:accessToken`
 - `POST /api/v1/registrations/token/:accessToken/cancel`
+- `POST /api/v1/registrations/token/:accessToken/bank-transfer`
 
 管理 API：
 
 - `GET /api/v1/admin/events`
 - `POST /api/v1/admin/events`
+- `GET /api/v1/admin/events/:eventId/dashboard`
+- `POST /api/v1/admin/events/:eventId/sessions`
+- `POST /api/v1/admin/registrations/:registrationId/confirm-payment`
 
-> 注意：管理 API 目前為 V1 開發基線，正式對外前必須再加管理員驗證。
+> 注意：管理 API 目前仍為開發基線，正式對外前必須加入管理員驗證與 tenant/API key 隔離。
 
-### 建立報名範例
+## 建立報名範例
 
 ```json
 {
@@ -79,6 +91,11 @@
   "items": [
     { "itemId": "item_member", "quantity": 2 },
     { "itemId": "item_guest", "quantity": 1 }
+  ],
+  "attendees": [
+    { "itemId": "item_member", "attendeeIndex": 1, "name": "王小明" },
+    { "itemId": "item_member", "attendeeIndex": 2, "name": "王小華" },
+    { "itemId": "item_guest", "attendeeIndex": 1, "name": "李大華" }
   ]
 }
 ```
@@ -102,32 +119,22 @@ npm run dev
 npm run db:migrate:remote
 ```
 
+目前 migration：
+
+- `0001_initial.sql`
+- `0002_payment_sessions.sql`
+
 ## 目前分支
 
 `agent/registration-v1-foundation`
 
-## 已完成
-
-- D1 schema
-- 報名核心 API
-- Login / Guest / Hybrid 身分模型
-- 免費 / 後付 / 先付三種成立模式
-- 項目 × 單價 × 人數
-- 名額檢查
-- 訂單與報名快照
-- 公開活動列表
-- 實際報名 UI
-- 報名成功 / 查詢 / 取消頁
-- 第一版活動建立後台
-
 ## 下一階段
 
-1. 梯次建立與每梯獨立項目 / 價位 / 名額
-2. 自訂報名欄位與每位參加者資料
-3. 匯款資料填寫與管理員確認收款
-4. `pay_then_confirm` 付款成功後自動轉 `confirmed`
-5. 待付款逾時釋放名額
-6. 我的報名（會員模式）
-7. QR Code 報到
-8. 管理員 Login / 權限
-9. API Key / tenant 隔離，提供其他專案串接
+1. 每個梯次綁定自己的報名項目 / 價位 / 名額管理 UI
+2. 自訂報名欄位 Builder
+3. 會員「我的報名」
+4. QR Code 報到
+5. 管理員 Login / 權限
+6. API Key / tenant 隔離，提供其他專案串接
+7. LINE Login / 外部會員 Identity Adapter
+8. 付款 gateway adapter（LINE Pay / 藍新 / 綠界）
