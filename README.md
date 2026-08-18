@@ -44,9 +44,9 @@
 - `/admin/event/:eventId/config`：梯次專屬項目 / 自訂欄位 / 報到
 - `/admin/event/:eventId/items`：項目編輯 / 停用 / 排序 / 價格 / 名額
 - `/admin/api-clients`：API Client 建立 / 停用
-- `/admin/checkin`：手機相機 QR 掃碼報到，瀏覽器不支援時可手動輸入報名編號
+- `/admin/checkin`：手機相機 QR 掃碼報到
 
-## V0.8 已完成
+## V0.9 已完成
 
 ### 報名核心
 
@@ -72,22 +72,50 @@
 - 外部會員一次性 Browser Handoff
 - Handoff code 短效、一次性，不把 identity token 放進 URL
 - `/my` 使用登入身份直接查詢會員報名紀錄
+- API Client scope 已開始強制：`events:read` / `identity:write`
 - TDEA 串接文件：`docs/TDEA_IDENTITY_ADAPTER.md`
 
-### V0.8 新增
+### V0.9 新增：取消 / 退費 / 催款
 
-- QR 掃碼專用報到頁：`/admin/checkin`
-- 手機後鏡頭優先；支援 `BarcodeDetector` 時自動辨識 QR
-- 不支援自動辨識的瀏覽器保留手動報名編號報到
-- 報名完成頁增加電子票券入口
-- 活動項目管理頁：編輯名稱、梯次、價格、單位、每筆上限、總名額、排序、啟用 / 停用
-- CSV 名單匯出：`GET /api/v1/admin/events/:eventId/export.csv`
-- CSV 使用 UTF-8 BOM，方便 Windows Excel 直接開啟中文
-- API Key 輪替：`POST /api/v1/admin/api-clients/:clientId/rotate`
-- 輪替後舊 Key 立即失效，新 Key 僅回傳一次
-- `/health` 回報 `0.8.0`
+活動可以設定：
+
+- `cancel_policy`：`allowed` / `disabled`
+- `cancel_deadline_hours`：活動開始前幾小時停止自行取消
+- `paid_cancel_action`：
+  - `manual_refund`：已付款取消後建立待人工處理退費單
+  - `no_refund`：可取消但不建立退費單
+  - `block`：已付款後不可自行取消
+- `payment_due_days`：`register_then_pay` 報名後幾天內付款
+
+新增資料：
+
+- `registrations.payment_due_at`
+- `registrations.reminder_sent_at`
+- `refund_requests`
+
+新增 API：
+
+- `GET /api/v1/admin/events/:eventId/policy`
+- `POST /api/v1/admin/events/:eventId/policy`
+- `GET /api/v1/admin/reminders/due`
+- `POST /api/v1/admin/registrations/:registrationId/reminder-sent`
+
+`GET /api/v1/admin/reminders/due` 會列出 24 小時內到期、尚未付款、尚未標記提醒的報名，方便之後串 LINE / Email / SMS 通知器。
+
+### V0.8 已有
+
+- QR 掃碼專用報到頁 `/admin/checkin`
+- 電子票券 / QR Code
+- 後台項目編輯 / 停用 / 排序 / 價格 / 名額
+- CSV 中文名單匯出
+- API Key 輪替
 
 ## Integration API
+
+外部專案使用 API Key 串接。V0.9 已開始強制 scope：
+
+- `GET /api/v1/integration/events` → `events:read`
+- Identity Session / Handoff → `identity:write`
 
 ### 建立已驗證會員 Identity Session
 
@@ -136,8 +164,6 @@ npx wrangler secret put ADMIN_TOKEN
 npx wrangler secret put LINE_CHANNEL_SECRET
 ```
 
-LINE Login 的 ID token / access token 必須由伺服器向 LINE 驗證，不信任瀏覽器自行傳來的會員資料。
-
 ## D1
 
 目前 migration：
@@ -146,6 +172,7 @@ LINE Login 的 ID token / access token 必須由伺服器向 LINE 驗證，不�
 - `0002_payment_sessions.sql`
 - `0003_integrations_security.sql`
 - `0004_identity_handoff.sql`
+- `0005_cancellation_reminders.sql`
 
 建立正式資料庫後，把 `wrangler.toml` 的 `database_id` 改成實際 D1 ID，再執行：
 
@@ -158,7 +185,7 @@ npm run deploy
 ## Worker entrypoint
 
 ```text
-src/app-v08.ts
+src/app-v09.ts
 ```
 
 ## 目前分支
@@ -168,9 +195,9 @@ src/app-v08.ts
 ## 下一階段
 
 1. 建立正式 `class_db`、套 migration、部署 staging 實機測試
-2. 在後台活動儀表板直接加入「匯出 CSV / 掃碼報到 / 項目管理」入口
-3. 取消 / 退費規則
-4. 付款期限與未付款提醒
+2. 把取消 / 退費 / 付款期限設定做進活動後台 UI
+3. 建立 refund 管理頁與完成退費流程
+4. 將 due reminders 串 LINE / Email / SMS 通知 adapter
 5. 付款 gateway adapter（LINE Pay / 藍新 / 綠界）
-6. API Client scope 真正強制授權
+6. API scope 擴充到 registration / payment 等更細權限
 7. 若需要 Excel `.xlsx` 再加正式 Excel 匯出
