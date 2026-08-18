@@ -5,6 +5,7 @@ export interface Env {
   LINE_CHANNEL_ID?: string;
   LINE_CHANNEL_SECRET?: string;
   LINE_REDIRECT_URI?: string;
+  NOTIFY_WEBHOOK_URL?: string;
 }
 
 export type IdentityMode = 'login_required' | 'guest_only' | 'hybrid';
