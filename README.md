@@ -49,7 +49,7 @@
 - `/admin/api-clients`：API Client 建立 / 停用
 - `/admin/checkin`：手機相機 QR 掃碼報到
 
-## V0.10 已完成
+## V0.10.1 已完成
 
 ### 報名核心
 
@@ -105,6 +105,13 @@
 - 顯示手機、Email、付款期限、應付金額
 - 可人工標記「已提醒」
 - 後續 LINE / Email / SMS 通知器共用同一批 reminder 資料
+
+### V0.10.1 修正
+
+- 退費處理改用 `refund_requests` 在 0005 已建立的 `requested_at / processed_at / note` 欄位，避免重複 migration 欄位衝突。
+- `0006_refund_processing.sql` 改為 no-op compatibility migration，維持既有 migration 順序。
+- 退費管理頁不使用瀏覽器原生 prompt，改為頁面內直接填寫處理備註。
+- Worker entrypoint 改為 `src/app-v101.ts`。
 
 新增 API：
 
@@ -187,7 +194,7 @@ npx wrangler secret put LINE_CHANNEL_SECRET
 - `0003_integrations_security.sql`
 - `0004_identity_handoff.sql`
 - `0005_cancellation_reminders.sql`
-- `0006_refund_processing.sql`
+- `0006_refund_processing.sql`（compatibility no-op）
 
 建立正式資料庫後，把 `wrangler.toml` 的 `database_id` 改成實際 D1 ID，再執行：
 
@@ -200,7 +207,7 @@ npm run deploy
 ## Worker entrypoint
 
 ```text
-src/app-v10.ts
+src/app-v101.ts
 ```
 
 ## 目前分支
