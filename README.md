@@ -27,50 +27,40 @@
 - `guest_only`：不登入，一般自行填寫。
 - `hybrid`：登入快速報名或自行填寫都可以。
 
-## 目前可操作頁面
+## V0.10.1
 
-- `/`：首頁
-- `/events`：公開活動列表
-- `/event/:eventId`：動態手機報名頁
-- `/registration/:accessToken`：報名查詢 / 取消 / 匯款回報
-- `/ticket/:accessToken`：電子票券 / QR Code
-- `/login?return=...`：登入入口
-- `/auth/line/start`、`/auth/line/callback`：LINE Login
-- `/auth/handoff?code=...`：外部會員一次性登入交接
-- `/my`：會員「我的報名」
-- `/admin/login`：管理員登入
-- `/admin`：活動管理
-- `/admin/event/:eventId`：活動儀表板 / 名單 / 收款
-- `/admin/event/:eventId/config`：梯次專屬項目 / 自訂欄位 / 報到
-- `/admin/event/:eventId/items`：項目編輯 / 停用 / 排序 / 價格 / 名額
-- `/admin/event/:eventId/policy`：取消 / 已付款取消 / 後付付款期限設定
-- `/admin/refunds`：退費申請管理
-- `/admin/reminders`：未付款提醒作業台
-- `/admin/api-clients`：API Client 建立 / 停用
-- `/admin/checkin`：手機相機 QR 掃碼報到
+目前已完成：
 
-## V0.10.1 已完成
-
-- 項目 × 單價 × 人數，價格一律由後端重新計算
-- 活動總名額 / 梯次名額 / 項目名額
-- 每梯次可有自己的項目 / 價位 / 名額
-- 每位參加者資料與自訂欄位 Builder
+- 項目 × 單價 × 人數
+- 活動 / 梯次 / 項目三層名額
 - 免費 / 後付 / 付款完成才成立
+- 多人參加者資料與自訂欄位
+- LINE Login / 外部 Identity Adapter / Browser Handoff
+- 匯款回報與後台確認收款
 - 取消政策、已付款取消策略、付款期限
 - 退費申請管理與已退費 / 駁回流程
-- 退費完成同步更新 Registration / Order 為 `refunded`
 - 未付款提醒作業台
-- LINE Login / 外部會員 Identity Adapter / Browser Handoff
-- API Client + tenant + scope
 - 電子票券 / QR Code / 掃碼報到
 - CSV 中文名單匯出
-- API Key 輪替
+- API Client / tenant / scope / Key 輪替
 
-### 取消 / 退費 / 付款期限
+## 主要後台頁面
+
+- `/admin`
+- `/admin/event/:eventId`
+- `/admin/event/:eventId/config`
+- `/admin/event/:eventId/items`
+- `/admin/event/:eventId/policy`
+- `/admin/refunds`
+- `/admin/reminders`
+- `/admin/api-clients`
+- `/admin/checkin`
+
+## 取消 / 退費 / 付款期限
 
 活動管理員可在 `/admin/event/:eventId/policy` 設定：
 
-- 是否允許使用者自行取消
+- 是否允許自行取消
 - 活動開始前幾小時停止自行取消
 - 已付款取消後：人工退費 / 不退費 / 禁止自行取消
 - `register_then_pay` 報名後幾天內必須付款
@@ -80,7 +70,8 @@
 - 顯示活動、報名編號、聯絡人、退費金額、原因
 - 可標記已退費或駁回
 - 保存處理時間與備註
-- 不使用瀏覽器原生 prompt，處理備註直接在頁面內輸入
+- 已退費時同步更新 Registration / Order 為 `refunded`
+- 處理備註直接在頁面內輸入，不使用瀏覽器原生 prompt
 
 未付款提醒 `/admin/reminders`：
 
@@ -103,24 +94,7 @@
 - `GET /api/v1/admin/reminders/due`
 - `POST /api/v1/admin/registrations/:registrationId/reminder-sent`
 
-## LINE Login 設定
-
-正式啟用前需設定：
-
-- `LINE_CHANNEL_ID`
-- `LINE_CHANNEL_SECRET`
-- `LINE_REDIRECT_URI`
-
-正式環境至少執行：
-
-```bash
-npx wrangler secret put ADMIN_TOKEN
-npx wrangler secret put LINE_CHANNEL_SECRET
-```
-
-## D1
-
-目前 migration：
+## D1 migrations
 
 - `0001_initial.sql`
 - `0002_payment_sessions.sql`
@@ -129,20 +103,28 @@ npx wrangler secret put LINE_CHANNEL_SECRET
 - `0005_cancellation_reminders.sql`
 - `0006_refund_processing.sql`（compatibility no-op）
 
-`refund_requests` 的 `requested_at / processed_at / processed_by / note` 已在 0005 建立，因此 0006 不再重複 ALTER，避免正式 migration 衝突。
-
-建立正式資料庫後，把 `wrangler.toml` 的 `database_id` 改成實際 D1 ID，再執行：
-
-```bash
-npm install
-npm run db:migrate:remote
-npm run deploy
-```
+`refund_requests` 的 `requested_at / processed_at / processed_by / note` 已在 0005 建立，因此 0006 不再重複 ALTER，避免 migration 衝突。
 
 ## Worker entrypoint
 
 ```text
 src/app-v101.ts
+```
+
+## 正式部署前唯一必要條件
+
+`wrangler.toml` 目前仍是：
+
+```text
+database_id = "REPLACE_WITH_CLASS_DB_ID"
+```
+
+因此正式部署前必須先建立 `class_db`，填入實際 D1 database ID，再套 migration。
+
+```bash
+npm install
+npm run db:migrate:remote
+npm run deploy
 ```
 
 ## 目前分支
